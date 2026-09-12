@@ -1,0 +1,60 @@
+{
+  "name": "ctxpack",
+  "version": "1.0.0",
+  "description": "Pack a codebase into LLM-ready context. Respects .gitignore, budgets tokens, redacts secrets.",
+  "keywords": [
+    "llm",
+    "ai",
+    "context",
+    "prompt",
+    "cli",
+    "tokenizer",
+    "chatgpt",
+    "claude",
+    "copilot"
+  ],
+  "license": "SEE LICENSE IN LICENSE",
+  "author": "Batuhan (KodYazicam) <https://github.com/KodYazicam>",
+  "homepage": "https://github.com/KodYazicam/ctxpack",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/KodYazicam/ctxpack.git"
+  },
+  "bugs": {
+    "url": "https://github.com/KodYazicam/ctxpack/issues"
+  },
+  "type": "module",
+  "bin": {
+    "ctxpack": "./dist/cli.js"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "LICENSE",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "prepublishOnly": "npm run build"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "typescript": "^5.7.0",
+    "vitest": "^2.1.0"
+  },
+  "allowScripts": {
+    "esbuild@0.21.5": true
+  }
+}

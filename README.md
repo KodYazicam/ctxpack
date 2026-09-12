@@ -26,7 +26,7 @@ npx ctxpack . -o prompt.md
 
 Pasting a zip into a chat window dumps `node_modules`, lockfiles, and secrets. `ctxpack` does the boring part:
 
-- skips gitignored and binary files
+- skips gitignored files, binaries, lockfiles, and `.env` (keeps `.env.example`)
 - estimates tokens and drops low-value files when you set a budget
 - redacts AWS keys, GitHub tokens, OpenAI keys, Slack tokens, private keys
 - emits **markdown**, **xml** (Anthropic-style), or **json**

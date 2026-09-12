@@ -28,6 +28,11 @@ const DEFAULT_IGNORES = [
   "yarn.lock",
   "bun.lockb",
   "bun.lock",
+  ".env",
+  ".env.*",
+  "!.env.example",
+  "!.env.sample",
+  "!.env.template",
 ];
 
 export function loadIgnoreRules(root: string, extra: string[] = []): IgnoreRule[] {

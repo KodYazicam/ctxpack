@@ -93,9 +93,6 @@ export function pack(options: PackOptions): PackResult {
   const kept: PackedFile[] = [];
   const dropped: PackedFile[] = [];
   let used = 0;
-  const treeText = options.tree === false ? "" : buildTree(ranked.map((f) => f.path));
-  const treeTokens = treeText ? estimateTokens(treeText) + 40 : 0;
-  used += treeTokens;
 
   for (const file of ranked) {
     const { _score, ...rest } = file;
@@ -108,6 +105,7 @@ export function pack(options: PackOptions): PackResult {
     used += rest.tokens;
   }
 
+  const treeText = options.tree === false ? "" : buildTree(kept.map((f) => f.path));
   const output = render({ files: kept, tree: treeText, format, root: options.root });
   return {
     files: kept,

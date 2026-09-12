@@ -20,6 +20,8 @@ function fixture(): string {
   writeFileSync(join(dir, "secret.txt"), "should-be-ignored\n");
   mkdirSync(join(dir, "node_modules", "left-pad"), { recursive: true });
   writeFileSync(join(dir, "node_modules", "left-pad", "index.js"), "module.exports = 1\n");
+  writeFileSync(join(dir, ".env"), "SECRET=super-secret-value\n");
+  writeFileSync(join(dir, ".env.example"), "SECRET=\n");
   return dir;
 }
 
@@ -47,8 +49,11 @@ describe("pack", () => {
     expect(result.output).toContain("src/index.ts");
     expect(result.output).not.toContain("should-be-ignored");
     expect(result.output).not.toContain("left-pad");
+    expect(result.output).not.toContain("super-secret-value");
+    expect(result.output).toContain(".env.example");
     expect(result.output).toContain("[REDACTED]");
     expect(result.tree).toContain("src");
+    expect(result.tree).not.toContain("secret.txt");
     expect(result.files.length).toBeGreaterThan(0);
   });
 
@@ -58,6 +63,7 @@ describe("pack", () => {
     const big = pack({ root, maxTokens: 50_000, format: "markdown", tree: false });
     expect(tiny.files.length).toBeLessThanOrEqual(big.files.length);
     expect(tiny.dropped.length).toBeGreaterThanOrEqual(0);
+    expect(tiny.tree).toBe("");
   });
 
   it("emits xml and json", () => {

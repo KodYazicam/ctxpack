@@ -2,6 +2,7 @@
 import { writeFileSync, mkdirSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { pack, type OutputFormat } from "./pack.js";
+import { invokedDirectly } from "./main.js";
 
 function help(): string {
   return `
@@ -164,7 +165,6 @@ export function run(argv: string[]): number {
   return 0;
 }
 
-const isDirect = process.argv[1]?.includes("cli");
-if (isDirect) {
+if (invokedDirectly(import.meta.url)) {
   process.exitCode = run(process.argv.slice(2));
 }

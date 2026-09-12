@@ -1,6 +1,9 @@
 {
-  "name": "ctxpack",
+  "name": "@kodyazicam/ctxpack",
   "version": "1.0.0",
+  "publishConfig": {
+    "access": "public"
+  },
   "description": "Pack a codebase into LLM-ready context. Respects .gitignore, budgets tokens, redacts secrets.",
   "keywords": [
     "llm",

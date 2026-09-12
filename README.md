@@ -19,7 +19,7 @@
 `ctxpack` walks a project, ranks the files that actually matter (README, package manifests, `src/`), and writes a single prompt you can paste into ChatGPT, Claude, Copilot, Cursor, or any local model. It is a real CLI, not a wrapper around an API.
 
 ```bash
-npx ctxpack . -o prompt.md
+npx @kodyazicam/ctxpack . -o prompt.md
 ```
 
 ## Table of contents
@@ -58,10 +58,10 @@ Pasting a zip into a chat window dumps `node_modules`, lockfiles, binaries, and 
 
 ```bash
 # one-shot
-npx ctxpack . -o prompt.md
+npx @kodyazicam/ctxpack . -o prompt.md
 
-# global
-npm install -g ctxpack
+# global (binary is still `ctxpack`)
+npm install -g @kodyazicam/ctxpack
 ctxpack --help
 
 # from a clone

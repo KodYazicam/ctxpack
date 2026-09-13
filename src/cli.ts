@@ -3,22 +3,29 @@ import { writeFileSync, mkdirSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { pack, type OutputFormat } from "./pack.js";
 import { invokedDirectly } from "./main.js";
+import { packageVersion } from "./version.js";
 
 function help(): string {
   return `
 ctxpack — pack a codebase into LLM-ready context
+
+Walks a git-aware tree, ranks the files a model actually needs (README,
+package manifests, src/), stays under a token budget, and redacts
+secret-like strings. Nothing is uploaded. There is no API key.
 
 Usage:
   ctxpack [dir] [options]
 
 Options:
   -o, --out <file>         Write to file instead of stdout
-  -m, --max-tokens <n>     Token budget (default: 80000)
+  -m, --max-tokens <n>     Token budget for the rendered output (default: 80000)
   -f, --format <fmt>       markdown | xml | json  (default: markdown)
-      --no-redact          Do not redact secrets
+      --no-redact          Do not redact secrets (not recommended)
       --no-tree            Skip the repository tree section
       --ignore <glob>      Extra ignore glob (repeatable)
       --include <glob>     Only include matching paths (repeatable)
+      --dry-run            Print the keep/drop plan to stderr; write nothing
+      --verbose            List every kept and dropped path on stderr
   -h, --help               Show this help
   -v, --version            Show version
 
@@ -26,6 +33,17 @@ Examples:
   ctxpack . -o prompt.md
   ctxpack ./src --max-tokens 12000 --format xml
   ctxpack . --include src/** --include README.md
+  ctxpack . --dry-run --verbose
+
+How ranking works:
+  README, package.json / pyproject.toml / Cargo.toml / go.mod, then src/ and
+  lib/, then index.* and source extensions. Tests and docs rank lower. Large
+  files are penalized so a 2 MB generated dump does not eat the budget.
+
+How gitignore works:
+  Built-in skips (node_modules, .git, dist, lockfiles, .env) plus the root
+  .gitignore plus every nested .gitignore. Symlinks that leave the root or
+  loop are skipped. .env.example / .env.sample / .env.template are kept.
 
 License: KYAL-1.0 — free to use, attribution required.
 https://github.com/KodYazicam/ctxpack
@@ -43,6 +61,8 @@ interface Args {
   include: string[];
   help: boolean;
   version: boolean;
+  dryRun: boolean;
+  verbose: boolean;
 }
 
 function parseArgs(argv: string[]): Args {
@@ -56,6 +76,8 @@ function parseArgs(argv: string[]): Args {
     include: [],
     help: false,
     version: false,
+    dryRun: false,
+    verbose: false,
   };
   const rest = [...argv];
   if (rest[0] && !rest[0].startsWith("-")) {
@@ -96,6 +118,12 @@ function parseArgs(argv: string[]): Args {
       case "--include":
         args.include.push(rest.shift() ?? "");
         break;
+      case "--dry-run":
+        args.dryRun = true;
+        break;
+      case "--verbose":
+        args.verbose = true;
+        break;
       default:
         if (token.startsWith("-")) {
           throw new Error(`Unknown option: ${token}`);
@@ -119,7 +147,7 @@ export function run(argv: string[]): number {
     return 0;
   }
   if (args.version) {
-    console.log("1.0.0");
+    console.log(packageVersion());
     return 0;
   }
   if (!Number.isFinite(args.maxTokens) || args.maxTokens <= 0) {
@@ -141,19 +169,31 @@ export function run(argv: string[]): number {
     tree: args.tree,
   });
 
+  const summary = `files=${result.files.length}  dropped=${result.dropped.length}  tokens≈${result.tokens}  redacted=${result.redactedCount}`;
+
+  if (args.verbose || args.dryRun) {
+    for (const file of result.files) {
+      console.error(`keep    ${file.path}  tokens≈${file.tokens}`);
+    }
+    for (const file of result.dropped) {
+      console.error(`drop    ${file.path}  tokens≈${file.tokens}`);
+    }
+  }
+
+  if (args.dryRun) {
+    console.error(`dry-run  ${summary}`);
+    return 0;
+  }
+
   if (args.out) {
     const out = resolve(args.out);
     mkdirSync(dirname(out), { recursive: true });
     writeFileSync(out, result.output, "utf8");
-    console.error(
-      `wrote ${out}  files=${result.files.length}  dropped=${result.dropped.length}  tokens≈${result.tokens}  redacted=${result.redactedCount}`,
-    );
+    console.error(`wrote ${out}  ${summary}`);
   } else {
     process.stdout.write(result.output);
     if (process.stdout.isTTY) {
-      console.error(
-        `\n# files=${result.files.length} dropped=${result.dropped.length} tokens≈${result.tokens} redacted=${result.redactedCount}`,
-      );
+      console.error(`\n# ${summary}`);
     }
   }
 

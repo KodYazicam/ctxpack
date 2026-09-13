@@ -1,0 +1,23 @@
+name: Bug report
+description: Something ctxpack packed wrong, leaked, or crashed on
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: Expected vs actual. Paste the stderr status line if you have it.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: ctxpack version
+      placeholder: "ctxpack --version"
+    validations:
+      required: true
+  - type: input
+    id: node
+    attributes:
+      label: Node.js version
+      placeholder: "node --version"

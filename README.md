@@ -4,7 +4,7 @@
 
 <p align="center">
   <strong>Pack a codebase into LLM-ready context.</strong><br/>
-  Respects <code>.gitignore</code>, budgets tokens, redacts secrets.
+  Respects nested <code>.gitignore</code>, budgets the <em>rendered</em> output, redacts secrets, never uploads anything.
 </p>
 
 <p align="center">
@@ -16,10 +16,16 @@
 
 ---
 
-`ctxpack` walks a project, ranks the files that actually matter (README, package manifests, `src/`), and writes a single prompt you can paste into ChatGPT, Claude, Copilot, Cursor, or any local model. It is a real CLI, not a wrapper around an API.
+`ctxpack` walks a project, ranks the files a model actually needs (README, package manifests, `src/`), and writes a single prompt you can paste into ChatGPT, Claude, Copilot, Cursor, or a local model. It is a real CLI with zero runtime dependencies. There is no API key and no network call.
 
 ```bash
 npx @kodyazicam/ctxpack . -o prompt.md
+```
+
+The scoped package name is `@kodyazicam/ctxpack`. The binary is still `ctxpack`. The library import is:
+
+```ts
+import { pack } from "@kodyazicam/ctxpack";
 ```
 
 ## Table of contents
@@ -30,8 +36,10 @@ npx @kodyazicam/ctxpack . -o prompt.md
 - [Quick start](#quick-start)
 - [CLI reference](#cli-reference)
 - [What is included / skipped](#what-is-included--skipped)
+- [Gitignore, nested rules, and symlinks](#gitignore-nested-rules-and-symlinks)
 - [Token budget](#token-budget)
 - [Secret redaction](#secret-redaction)
+- [Markdown fences](#markdown-fences)
 - [Output formats](#output-formats)
 - [Library API](#library-api)
 - [Examples](#examples)
@@ -43,11 +51,12 @@ npx @kodyazicam/ctxpack . -o prompt.md
 
 Pasting a zip into a chat window dumps `node_modules`, lockfiles, binaries, and secrets. `ctxpack` does the boring part:
 
-- skips gitignored files, binaries, lockfiles, and `.env` (keeps `.env.example`)
-- estimates tokens and drops low-value files when you set a budget
-- redacts AWS keys, GitHub tokens, OpenAI keys, Slack tokens, private keys
+- skips gitignored files (root **and** nested `.gitignore`), binaries, lockfiles, and `.env` (keeps `.env.example`)
+- estimates tokens of the **rendered** pack (fences + tree + attribution count against the budget)
+- redacts AWS, GitHub, OpenAI (`sk-` / `sk-proj-` / `sk-svcacct-`), Anthropic, Stripe, Slack, and PEM private keys
 - emits **markdown**, **xml** (Anthropic-style), or **json**
 - ranks README / `package.json` / `src/` higher than tests and docs so the budget is spent on the files a model actually needs
+- `--dry-run --verbose` prints the keep/drop plan without writing a file
 
 ## Requirements
 
@@ -57,7 +66,7 @@ Pasting a zip into a chat window dumps `node_modules`, lockfiles, binaries, and 
 ## Install
 
 ```bash
-# one-shot
+# one-shot (always the scoped name)
 npx @kodyazicam/ctxpack . -o prompt.md
 
 # global (binary is still `ctxpack`)
@@ -67,7 +76,7 @@ ctxpack --help
 # from a clone
 git clone https://github.com/KodYazicam/ctxpack.git
 cd ctxpack
-npm install
+npm ci
 npm test
 npm run build
 node dist/cli.js . -o /tmp/prompt.md
@@ -79,6 +88,9 @@ node dist/cli.js . -o /tmp/prompt.md
 # whole repo, default 80k token budget, markdown
 ctxpack . -o prompt.md
 
+# see what would be kept without writing
+ctxpack . --dry-run --verbose
+
 # only source, small chat model
 ctxpack ./src --max-tokens 12000 -o chat.md
 
@@ -89,7 +101,7 @@ ctxpack . --format xml -o claude.xml
 ctxpack . --format json -o context.json
 ```
 
-Paste `prompt.md` into the model. The file starts with a repository tree, then one fenced block per kept file.
+Paste `prompt.md` into the model. The file starts with a repository tree of **kept** files, then one fenced block per file.
 
 ## CLI reference
 
@@ -98,17 +110,19 @@ ctxpack [dir] [options]
 
   [dir]                    Root to walk (default: .)
   -o, --out <file>         Write to file (default: stdout)
-  -m, --max-tokens <n>     Token budget (default: 80000)
+  -m, --max-tokens <n>     Token budget of the rendered output (default: 80000)
   -f, --format <fmt>       markdown | xml | json  (default: markdown)
       --no-redact          Keep secret-like strings (not recommended)
       --no-tree            Skip the repository tree section
       --ignore <glob>      Extra ignore glob (repeatable)
       --include <glob>     Only include matching paths (repeatable)
+      --dry-run            Print keep/drop to stderr; write nothing
+      --verbose            List every kept and dropped path
   -h, --help
-  -v, --version
+  -v, --version            Reads version from package.json
 ```
 
-Exit codes: `0` success, `1` bad flags.
+Exit codes: `0` success, `1` bad flags or I/O errors that the CLI catches.
 
 Status goes to **stderr** so you can pipe stdout:
 
@@ -123,19 +137,30 @@ Always skipped:
 | Path | Why |
 | --- | --- |
 | `node_modules/`, `.git/`, `dist/`, `build/`, `coverage/`, `.next/` | Noise |
-| `.venv/`, `__pycache__/`, lockfiles | Noise |
+| `.venv/`, `__pycache__/`, lockfiles (`package-lock.json`, `Cargo.lock`, `go.sum`, …) | Noise |
 | `.env`, `.env.*` | Secrets |
 | Binaries (png, pdf, wasm, fonts, archives) | Not text |
 
 Always kept if present: `.env.example`, `.env.sample`, `.env.template`.
 
-Also respects the project's `.gitignore`. `--ignore` adds more globs. `--include src/** --include README.md` is a whitelist: only matching paths are packed.
+`--include src/** --include README.md` is a whitelist: only matching paths are packed. Globs understand `*`, `**` at the end (`src/**`), and exact prefixes.
+
+## Gitignore, nested rules, and symlinks
+
+1. Built-in defaults (table above).
+2. The root `.gitignore`.
+3. Every nested `.gitignore` (a `pkg/.gitignore` that lists `generated.ts` only applies under `pkg/`).
+4. `--ignore` globs last.
+
+Directory-only rules (`node_modules/`) skip the directory and everything inside it. Negations (`!.env.example`) work.
+
+Symlinks that loop, or that `realpath` cannot resolve, are skipped so a malicious or accidental link farm cannot hang the walker.
 
 ## Token budget
 
-Tokens are an **estimate** (cl100k-ish, no native tiktoken). Good enough to stay under a model's window.
+Tokens are an **estimate** (cl100k-ish, no native tiktoken). Good enough to stay under a model's window. The budget is applied to file contents **plus** a small per-file fence overhead **plus** the header, so markdown wrappers do not secretly blow the window.
 
-Priority (high → low): README, package/pyproject/cargo/go manifests, `src/` / `lib/`, `index.*`, source extensions, then tests/docs. Large files are penalized. When the budget is full, remaining files go to `dropped` — they still appear in the tree only if they were **kept**.
+Priority (high → low): README, package/pyproject/cargo/go manifests, `src/` / `lib/`, `index.*`, source extensions, then tests/docs. Large files are penalized. When the budget is full, remaining files go to `dropped`. The tree lists **kept** files only; `--verbose` lists drops.
 
 A file larger than 200 KB is truncated in the pack with `/* [truncated by ctxpack] */`.
 
@@ -144,19 +169,25 @@ A file larger than 200 KB is truncated in the pack with `/* [truncated by ctxpac
 On by default. Patterns:
 
 - AWS access keys (`AKIA…`)
-- GitHub tokens (`ghp_`, `gho_`, …)
-- OpenAI-like keys (`sk-…`)
+- GitHub tokens (`ghp_`, `gho_`, `github_pat_`)
+- OpenAI-like keys (`sk-` 32+, `sk-proj-…`, `sk-svcacct-…`)
+- Anthropic (`sk-ant-…`)
+- Stripe live keys and `whsec_`
 - Slack tokens (`xox…`)
 - PEM private keys
-- Generic `password=` / `api_key=` assignments
+- Generic quoted `password=` / `api_key=` assignments
 
-Use `--no-redact` only on a machine you trust. The CLI still prints a warning if matches were found.
+Use `--no-redact` only on a machine you trust. The CLI still prints a warning if matches were found. See [SECURITY.md](./SECURITY.md).
+
+## Markdown fences
+
+If a packed file itself contains `` ``` ``, ctxpack lengthens the fence (```` ````, then longer) so the pack stays valid markdown. XML and JSON formats do not have this problem.
 
 ## Output formats
 
 **markdown** — headings + fenced code. Best for ChatGPT / Copilot paste.
 
-**xml** — `<context><file path="…">`. Best for Claude.
+**xml** — `<context><file path="…">`. Best for Claude. `& < > " '` are escaped.
 
 **json** — `{ generator, author, root, tree, files: [{ path, tokens, size, truncated, content }] }`.
 
@@ -165,7 +196,7 @@ Every format includes attribution: KodYazicam / ctxpack.
 ## Library API
 
 ```ts
-import { pack, estimateTokens, findSecrets, redactSecrets, walkFiles } from "ctxpack";
+import { pack, estimateTokens, findSecrets, redactSecrets, walkFiles } from "@kodyazicam/ctxpack";
 
 const result = pack({
   root: process.cwd(),
@@ -191,6 +222,7 @@ result.redactedCount;
 | `findSecrets(text)` / `redactSecrets(text)` | Secret scan |
 | `walkFiles(options)` | Gitignore-aware walker |
 | `runCli(argv)` | Same as the binary |
+| `packageVersion()` | Version from package.json |
 
 ## Examples
 
@@ -203,6 +235,9 @@ ctxpack . --ignore generated/** --ignore "*.gen.ts" -o prompt.md
 
 # CI artifact
 ctxpack . --max-tokens 24000 -o "$RUNNER_TEMP/context.md"
+
+# inspect ranking
+ctxpack . --dry-run --verbose 2> plan.txt
 ```
 
 ## Troubleshooting
@@ -210,10 +245,11 @@ ctxpack . --max-tokens 24000 -o "$RUNNER_TEMP/context.md"
 | Symptom | Fix |
 | --- | --- |
 | Output is huge | `--max-tokens 8000` and/or `--include src/**` |
-| Missing files | They may be gitignored, binary, or dropped by budget. Check stderr `dropped=` |
-| Secrets still visible | Pattern may not match. Add `--ignore` for that file. Never use `--no-redact` in CI logs |
+| Missing files | They may be gitignored (including nested), binary, or dropped by budget. `--verbose` |
+| Secrets still visible | Pattern may not match. `--ignore` that file. Never `--no-redact` in CI logs |
 | `Unknown option` | Flags are GNU-style. Put the directory first: `ctxpack ./src -o out.md` |
-| Estimate feels low/high | It is approximate. Tighten `--max-tokens` rather than trusting an exact count |
+| Estimate feels low/high | It is approximate. Tighten `--max-tokens` |
+| Markdown looks broken | File contained fences; ctxpack lengthens them. Re-run on latest |
 
 ## FAQ
 
@@ -225,9 +261,11 @@ ctxpack . --max-tokens 24000 -o "$RUNNER_TEMP/context.md"
 
 **Should I commit `prompt.md`?** No. It can contain source and (if you disabled redaction) secrets. Add it to `.gitignore`.
 
+**Why `@kodyazicam/ctxpack`?** The unscoped `ctxpack` name on npm was already taken.
+
 ## License — KYAL-1.0
 
-Free to use, copy, modify, and ship. **Attribution is mandatory.**
+Free to use, copy, modify, and ship. **Attribution is mandatory.** This is not an OSI-approved license; it is MIT-shaped plus a credit requirement.
 
 ```
 Author : Batuhan (KodYazicam)

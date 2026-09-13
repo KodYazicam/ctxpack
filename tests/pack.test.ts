@@ -6,6 +6,7 @@ import { pack } from "../src/pack.js";
 import { estimateTokens } from "../src/tokens.js";
 import { redactSecrets, findSecrets } from "../src/secrets.js";
 import { run } from "../src/cli.js";
+import { packageVersion } from "../src/version.js";
 
 function fixture(): string {
   const dir = mkdtempSync(join(tmpdir(), "ctxpack-"));
@@ -15,13 +16,20 @@ function fixture(): string {
     JSON.stringify({ name: "demo", version: "1.0.0" }, null, 2),
   );
   mkdirSync(join(dir, "src"));
-  writeFileSync(join(dir, "src", "index.ts"), 'export const n = 42;\nconst key = "sk-abcdefghijklmnopqrstuvwxyz123456";\n');
+  writeFileSync(
+    join(dir, "src", "index.ts"),
+    'export const n = 42;\nconst key = "sk-abcdefghijklmnopqrstuvwxyz1234567890ab";\n',
+  );
   writeFileSync(join(dir, ".gitignore"), "secret.txt\n");
   writeFileSync(join(dir, "secret.txt"), "should-be-ignored\n");
   mkdirSync(join(dir, "node_modules", "left-pad"), { recursive: true });
   writeFileSync(join(dir, "node_modules", "left-pad", "index.js"), "module.exports = 1\n");
   writeFileSync(join(dir, ".env"), "SECRET=super-secret-value\n");
   writeFileSync(join(dir, ".env.example"), "SECRET=\n");
+  mkdirSync(join(dir, "pkg"));
+  writeFileSync(join(dir, "pkg", ".gitignore"), "generated.ts\n");
+  writeFileSync(join(dir, "pkg", "keep.ts"), "export const keep = 1;\n");
+  writeFileSync(join(dir, "pkg", "generated.ts"), "export const generated = 1;\n");
   return dir;
 }
 
@@ -34,10 +42,17 @@ describe("estimateTokens", () => {
 });
 
 describe("secrets", () => {
-  it("finds and redacts openai-like keys", () => {
-    const text = 'const k = "sk-abcdefghijklmnopqrstuvwxyz123456";';
+  it("finds and redacts openai-like keys including sk-proj", () => {
+    const text = 'const k = "sk-abcdefghijklmnopqrstuvwxyz1234567890ab";';
     expect(findSecrets(text).some((h) => h.kind === "openai-key")).toBe(true);
     expect(redactSecrets(text).text).toContain("[REDACTED]");
+    const proj = 'const k = "sk-proj-abcdefghijklmnopqrstuvwxyz123456";';
+    expect(findSecrets(proj).some((h) => h.kind === "openai-key")).toBe(true);
+  });
+
+  it("finds github fine-grained tokens and stripe live keys", () => {
+    expect(findSecrets("github_pat_abcdefghijklmnopqrstuvwxyz").length).toBeGreaterThan(0);
+    expect(findSecrets("sk_live_abcdefghijklmnopqrstuv").length).toBeGreaterThan(0);
   });
 });
 
@@ -55,6 +70,16 @@ describe("pack", () => {
     expect(result.tree).toContain("src");
     expect(result.tree).not.toContain("secret.txt");
     expect(result.files.length).toBeGreaterThan(0);
+    expect(result.output).toContain("pkg/keep.ts");
+    expect(result.output).not.toContain("generated = 1");
+  });
+
+  it("does not break markdown fences when a file contains backticks", () => {
+    const dir = mkdtempSync(join(tmpdir(), "ctxpack-fence-"));
+    writeFileSync(join(dir, "note.md"), "```\nsecret fence\n```\n");
+    const result = pack({ root: dir, format: "markdown", tree: false });
+    expect(result.output).toContain("````md");
+    expect(result.output).toContain("secret fence");
   });
 
   it("respects token budget by dropping low-priority files", () => {
@@ -86,6 +111,19 @@ describe("cli", () => {
     expect(run(["--version"])).toBe(0);
     console.log = orig;
     expect(logs.join("\n")).toContain("ctxpack");
-    expect(logs.join("\n")).toContain("1.0.0");
+    expect(logs.join("\n")).toContain(packageVersion());
+  });
+
+  it("dry-run writes nothing to stdout", () => {
+    const root = fixture();
+    const origErr = console.error;
+    const errors: string[] = [];
+    console.error = (msg?: unknown) => {
+      errors.push(String(msg ?? ""));
+    };
+    expect(run([root, "--dry-run", "--verbose"])).toBe(0);
+    console.error = origErr;
+    expect(errors.join("\n")).toContain("dry-run");
+    expect(errors.join("\n")).toContain("keep");
   });
 });

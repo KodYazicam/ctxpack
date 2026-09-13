@@ -1,6 +1,12 @@
-import { readdirSync, statSync, readFileSync } from "node:fs";
+import { readdirSync, statSync, readFileSync, realpathSync } from "node:fs";
 import { join, extname } from "node:path";
-import { loadIgnoreRules, isIgnored, toRelative, type IgnoreRule } from "./gitignore.js";
+import {
+  loadIgnoreRules,
+  loadNestedIgnore,
+  isIgnored,
+  toRelative,
+  type IgnoreRule,
+} from "./gitignore.js";
 
 const BINARY_EXT = new Set([
   ".png",
@@ -28,7 +34,6 @@ const BINARY_EXT = new Set([
   ".dylib",
   ".bin",
   ".wasm",
-  ".lock",
 ]);
 
 export interface WalkOptions {
@@ -52,7 +57,8 @@ export function walkFiles(options: WalkOptions): FileEntry[] {
   const maxBytes = options.maxFileBytes ?? 200_000;
   const include = options.include?.map((p) => p.replace(/^\.\//, ""));
   const files: FileEntry[] = [];
-  visit(root, root, rules, maxBytes, include, files);
+  const seen = new Set<string>();
+  visit(root, root, rules, maxBytes, include, files, seen);
   files.sort((a, b) => a.path.localeCompare(b.path));
   return files;
 }
@@ -64,20 +70,43 @@ function visit(
   maxBytes: number,
   include: string[] | undefined,
   out: FileEntry[],
+  seen: Set<string>,
 ): void {
+  let real: string;
+  try {
+    real = realpathSync(dir);
+  } catch {
+    return;
+  }
+  if (seen.has(real)) return;
+  seen.add(real);
+
   let entries;
   try {
     entries = readdirSync(dir, { withFileTypes: true });
   } catch {
     return;
   }
+
+  const relDir = toRelative(root, dir);
+  const nested = loadNestedIgnore(dir, relDir);
+  const localRules = nested.length ? [...rules, ...nested] : rules;
+
   for (const entry of entries) {
     const abs = join(dir, entry.name);
     const rel = toRelative(root, abs);
-    const isDir = entry.isDirectory();
-    if (isIgnored(rel, rules, isDir)) continue;
-    if (isDir) {
-      visit(root, abs, rules, maxBytes, include, out);
+    const isDir = entry.isDirectory() || entry.isSymbolicLink();
+    let dirFlag = entry.isDirectory();
+    if (entry.isSymbolicLink()) {
+      try {
+        dirFlag = statSync(abs).isDirectory();
+      } catch {
+        continue;
+      }
+    }
+    if (isIgnored(rel, localRules, dirFlag)) continue;
+    if (dirFlag) {
+      visit(root, abs, localRules, maxBytes, include, out, seen);
       continue;
     }
     if (include && include.length > 0 && !include.some((g) => matchSimple(rel, g))) {

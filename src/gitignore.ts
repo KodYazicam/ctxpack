@@ -28,6 +28,10 @@ const DEFAULT_IGNORES = [
   "yarn.lock",
   "bun.lockb",
   "bun.lock",
+  "Cargo.lock",
+  "poetry.lock",
+  "composer.lock",
+  "go.sum",
   ".env",
   ".env.*",
   "!.env.example",
@@ -42,13 +46,24 @@ export function loadIgnoreRules(root: string, extra: string[] = []): IgnoreRule[
     lines.push(...readFileSync(gitignore, "utf8").split(/\r?\n/));
   }
   lines.push(...extra);
+  return compileLines(lines, "");
+}
+
+export function loadNestedIgnore(absDir: string, relDir: string): IgnoreRule[] {
+  const file = join(absDir, ".gitignore");
+  if (!existsSync(file)) return [];
+  const prefix = relDir === "." || relDir === "" ? "" : relDir.replace(/\\/g, "/");
+  return compileLines(readFileSync(file, "utf8").split(/\r?\n/), prefix);
+}
+
+function compileLines(lines: string[], base: string): IgnoreRule[] {
   return lines
     .map((line) => line.trim())
     .filter((line) => line && !line.startsWith("#"))
-    .map(compileRule);
+    .map((line) => compileRule(line, base));
 }
 
-function compileRule(raw: string): IgnoreRule {
+function compileRule(raw: string, base: string): IgnoreRule {
   let pattern = raw;
   const negated = pattern.startsWith("!");
   if (negated) pattern = pattern.slice(1);
@@ -56,7 +71,11 @@ function compileRule(raw: string): IgnoreRule {
   if (directoryOnly) pattern = pattern.slice(0, -1);
   const anchored = pattern.startsWith("/");
   if (anchored) pattern = pattern.slice(1);
-  const regex = globToRegExp(pattern, anchored);
+  if (base) {
+    const prefix = base.endsWith("/") ? base : `${base}/`;
+    pattern = anchored || pattern.includes("/") ? `${prefix}${pattern}` : `**/${pattern}`;
+  }
+  const regex = globToRegExp(pattern, Boolean(base) || anchored);
   return { negated, directoryOnly, pattern: raw, regex };
 }
 
@@ -97,9 +116,6 @@ export function isIgnored(relPath: string, rules: IgnoreRule[], isDir: boolean):
   const normalized = relPath.split(sep).join("/");
   let ignored = false;
   for (const rule of rules) {
-    if (rule.directoryOnly && !isDir && !normalized.includes("/")) {
-      // directory-only rules still match files inside that directory via regex
-    }
     if (rule.regex.test(normalized) || (isDir && rule.regex.test(`${normalized}/`))) {
       ignored = !rule.negated;
     }

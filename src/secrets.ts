@@ -6,10 +6,16 @@ export interface SecretHit {
 
 const PATTERNS: Array<{ kind: string; regex: RegExp }> = [
   { kind: "aws-access-key", regex: /\bAKIA[0-9A-Z]{16}\b/g },
+  { kind: "aws-secret-key", regex: /\b(?:aws)?[_-]?secret[_-]?access[_-]?key\b\s*[:=]\s*['"][A-Za-z0-9/+=]{40}['"]/gi },
   { kind: "github-token", regex: /\bgh[pousr]_[A-Za-z0-9_]{20,}\b/g },
-  { kind: "openai-key", regex: /\bsk-[A-Za-z0-9]{20,}\b/g },
+  { kind: "github-fine-grained", regex: /\bgithub_pat_[A-Za-z0-9_]{20,}\b/g },
+  { kind: "openai-key", regex: /\bsk-(?:proj|svcacct)-[A-Za-z0-9_-]{20,}\b/g },
+  { kind: "openai-key", regex: /\bsk-[A-Za-z0-9]{32,}\b/g },
+  { kind: "anthropic-key", regex: /\bsk-ant-[A-Za-z0-9_-]{20,}\b/g },
+  { kind: "stripe-key", regex: /\b(?:sk|rk|pk)_live_[A-Za-z0-9]{16,}\b/g },
+  { kind: "stripe-webhook", regex: /\bwhsec_[A-Za-z0-9]{16,}\b/g },
   { kind: "slack-token", regex: /\bxox[baprs]-[A-Za-z0-9-]{10,}\b/g },
-  { kind: "private-key", regex: /-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----/g },
+  { kind: "private-key", regex: /-----BEGIN (?:RSA |EC |DSA |OPENSSH |ENCRYPTED )?PRIVATE KEY-----/g },
   {
     kind: "generic-secret",
     regex:

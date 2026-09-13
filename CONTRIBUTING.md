@@ -5,9 +5,10 @@ Thanks for helping. Attribution stays with [KodYazicam](https://github.com/KodYa
 ## Setup
 
 ```bash
-npm install
+npm ci
 npm test
 npm run build
+npm run typecheck
 ```
 
 ## Rules
@@ -16,6 +17,8 @@ npm run build
 - Keep the CLI zero-config. New flags need a test and a README line.
 - Token estimates may be approximate; do not pull native `tiktoken` bindings.
 - Secret patterns must not log the secret itself.
+- Nested `.gitignore` and symlink loops are part of the contract — add a test if you touch the walker.
+- Markdown output must survive a file that contains fence markers.
 
 ## Pull requests
 

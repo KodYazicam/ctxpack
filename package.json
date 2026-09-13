@@ -53,6 +53,9 @@
     "prepublishOnly": "npm run build && npm test",
     "typecheck": "tsc -p tsconfig.build.json --noEmit"
   },
+  "optionalDependencies": {
+    "tiktoken": "^1.0.21"
+  },
   "devDependencies": {
     "@types/node": "^22.10.0",
     "typescript": "^5.7.0",

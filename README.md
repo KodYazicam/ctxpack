@@ -158,7 +158,7 @@ Symlinks that loop, or that `realpath` cannot resolve, are skipped so a maliciou
 
 ## Token budget
 
-Tokens are an **estimate** (cl100k-ish, no native tiktoken). Good enough to stay under a model's window. The budget is applied to file contents **plus** a small per-file fence overhead **plus** the header, so markdown wrappers do not secretly blow the window.
+Tokens are an **estimate** (cl100k-ish heuristic). If you `npm i tiktoken` next to ctxpack, `estimateTokens` uses the real cl100k_base encoder; the package stays optional so the CLI has zero required deps. The budget is applied to file contents **plus** a small per-file fence overhead **plus** the header, so markdown wrappers do not secretly blow the window.
 
 Priority (high → low): README, package/pyproject/cargo/go manifests, `src/` / `lib/`, `index.*`, source extensions, then tests/docs. Large files are penalized. When the budget is full, remaining files go to `dropped`. The tree lists **kept** files only; `--verbose` lists drops.
 

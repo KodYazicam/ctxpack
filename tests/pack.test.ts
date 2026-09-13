@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { pack } from "../src/pack.js";
-import { estimateTokens } from "../src/tokens.js";
+import { estimateTokens, heuristicTokens } from "../src/tokens.js";
 import { redactSecrets, findSecrets } from "../src/secrets.js";
 import { run } from "../src/cli.js";
 import { packageVersion } from "../src/version.js";
@@ -38,6 +38,7 @@ describe("estimateTokens", () => {
     const n = estimateTokens("function hello() { return 'world'; }");
     expect(n).toBeGreaterThan(0);
     expect(Number.isInteger(n)).toBe(true);
+    expect(heuristicTokens("abc")).toBeGreaterThan(0);
   });
 });
 

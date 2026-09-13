@@ -1,9 +1,7 @@
 {
   "name": "@kodyazicam/ctxpack",
   "version": "1.0.0",
-  "publishConfig": {
-    "access": "public"
-  },
+  "private": true,
   "description": "Pack a codebase into LLM-ready context. Respects .gitignore, budgets tokens, redacts secrets.",
   "keywords": [
     "llm",
@@ -50,7 +48,6 @@
     "build": "tsc -p tsconfig.build.json",
     "test": "vitest run",
     "test:watch": "vitest",
-    "prepublishOnly": "npm run build && npm test",
     "typecheck": "tsc -p tsconfig.build.json --noEmit"
   },
   "optionalDependencies": {

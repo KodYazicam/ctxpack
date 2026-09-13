@@ -19,7 +19,9 @@
 `ctxpack` walks a project, ranks the files a model actually needs (README, package manifests, `src/`), and writes a single prompt you can paste into ChatGPT, Claude, Copilot, Cursor, or a local model. It is a real CLI with zero runtime dependencies. There is no API key and no network call.
 
 ```bash
-npx @kodyazicam/ctxpack . -o prompt.md
+git clone https://github.com/KodYazicam/ctxpack.git
+cd ctxpack && npm ci && npm run build
+node dist/cli.js . -o prompt.md
 ```
 
 The scoped package name is `@kodyazicam/ctxpack`. The binary is still `ctxpack`. The library import is:
@@ -65,21 +67,16 @@ Pasting a zip into a chat window dumps `node_modules`, lockfiles, binaries, and 
 
 ## Install
 
+Not on npm. Clone and build:
+
 ```bash
-# one-shot (always the scoped name)
-npx @kodyazicam/ctxpack . -o prompt.md
-
-# global (binary is still `ctxpack`)
-npm install -g @kodyazicam/ctxpack
-ctxpack --help
-
-# from a clone
 git clone https://github.com/KodYazicam/ctxpack.git
 cd ctxpack
 npm ci
 npm test
 npm run build
-node dist/cli.js . -o /tmp/prompt.md
+node dist/cli.js . -o prompt.md
+# optional: npm link   →  ctxpack --help
 ```
 
 ## Quick start
@@ -261,7 +258,7 @@ ctxpack . --dry-run --verbose 2> plan.txt
 
 **Should I commit `prompt.md`?** No. It can contain source and (if you disabled redaction) secrets. Add it to `.gitignore`.
 
-**Why `@kodyazicam/ctxpack`?** The unscoped `ctxpack` name on npm was already taken.
+**Is it on npm?** No. Clone this repo. The package name in `package.json` is `@kodyazicam/ctxpack` so a local `npm link` does not collide with the unrelated public `ctxpack` package.
 
 ## License — KYAL-1.0
 

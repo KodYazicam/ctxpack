@@ -2,7 +2,7 @@
 
 ## Supported versions
 
-The latest `1.x` release on npm (`@kodyazicam/ctxpack`) is the only supported line.
+Supported line: `main` on GitHub. This tool is not published to npm.
 
 ## What ctxpack does with your files
 
@@ -35,6 +35,6 @@ Email is not required. Open a **private** GitHub security advisory on [KodYazica
 
 Please include:
 
-- ctxpack version (`ctxpack --version`)
+- ctxpack version (`node dist/cli.js --version`)
 - Node version
 - Whether the issue is in the walker, redaction, or the CLI write path

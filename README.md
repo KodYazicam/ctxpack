@@ -24,7 +24,7 @@ cd ctxpack && npm ci && npm run build
 node dist/cli.js . -o prompt.md
 ```
 
-The scoped package name is `@kodyazicam/ctxpack`. The binary is still `ctxpack`. The library import is:
+After `npm ci && npm run build`, the CLI is `node dist/cli.js`. `npm link` in this clone puts `ctxpack` on your PATH. From another project that file-depends on this repo:
 
 ```ts
 import { pack } from "@kodyazicam/ctxpack";
@@ -191,6 +191,8 @@ If a packed file itself contains `` ``` ``, ctxpack lengthens the fence (```` ``
 Every format includes attribution: KodYazicam / ctxpack.
 
 ## Library API
+
+After `npm install /path/to/ctxpack` (this clone):
 
 ```ts
 import { pack, estimateTokens, findSecrets, redactSecrets, walkFiles } from "@kodyazicam/ctxpack";

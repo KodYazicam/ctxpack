@@ -26,6 +26,7 @@ Options:
       --include <glob>     Only include matching paths (repeatable)
       --dry-run            Print the keep/drop plan to stderr; write nothing
       --verbose            List every kept and dropped path on stderr
+      --summary <file>     Write a JSON stats summary (files, tokens, redaction)
   -h, --help               Show this help
   -v, --version            Show version
 
@@ -63,6 +64,7 @@ interface Args {
   version: boolean;
   dryRun: boolean;
   verbose: boolean;
+  summary?: string;
 }
 
 function parseArgs(argv: string[]): Args {
@@ -124,6 +126,9 @@ function parseArgs(argv: string[]): Args {
       case "--verbose":
         args.verbose = true;
         break;
+      case "--summary":
+        args.summary = rest.shift();
+        break;
       default:
         if (token.startsWith("-")) {
           throw new Error(`Unknown option: ${token}`);
@@ -170,6 +175,29 @@ export function run(argv: string[]): number {
   });
 
   const summary = `files=${result.files.length}  dropped=${result.dropped.length}  tokens≈${result.tokens}  redacted=${result.redactedCount}`;
+
+  if (args.summary) {
+    const summaryPath = resolve(args.summary);
+    mkdirSync(dirname(summaryPath), { recursive: true });
+    writeFileSync(
+      summaryPath,
+      `${JSON.stringify(
+        {
+          root: resolve(args.root),
+          files: result.files.length,
+          dropped: result.dropped.length,
+          tokens: result.tokens,
+          redacted: result.redactedCount,
+          format: args.format,
+          kept: result.files.map((file) => ({ path: file.path, tokens: file.tokens })),
+        },
+        null,
+        2,
+      )}\n`,
+      "utf8",
+    );
+    console.error(`wrote ${summaryPath}`);
+  }
 
   if (args.verbose || args.dryRun) {
     for (const file of result.files) {

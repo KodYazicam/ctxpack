@@ -1,4 +1,4 @@
-import { mkdtempSync, writeFileSync, mkdirSync } from "node:fs";
+import { mkdtempSync, writeFileSync, mkdirSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -54,6 +54,23 @@ describe("secrets", () => {
   it("finds github fine-grained tokens and stripe live keys", () => {
     expect(findSecrets("github_pat_abcdefghijklmnopqrstuvwxyz").length).toBeGreaterThan(0);
     expect(findSecrets("sk_live_abcdefghijklmnopqrstuv").length).toBeGreaterThan(0);
+  });
+
+  it("finds google, telegram, npm, and slack webhook secrets", () => {
+    const google = 'const k = "AIzaSyA1234567890abcdefghijklmnopqrstuv";';
+    expect(findSecrets(google).some((h) => h.kind === "google-api-key")).toBe(true);
+    expect(redactSecrets(google).text).toContain("[REDACTED]");
+
+    const telegram = 'const t = "123456789:AAEqwertyuiopasdfghjklzxcvbnm_12345";';
+    expect(findSecrets(telegram).some((h) => h.kind === "telegram-bot-token")).toBe(true);
+    expect(redactSecrets(telegram).text).toContain("[REDACTED]");
+
+    const npm = "// npm_Nkqrstuvwxyz0123456789abcdefghijklmn";
+    expect(findSecrets(npm).some((h) => h.kind === "npm-token")).toBe(true);
+
+    const slack = ["https://hooks.slack.com/services/T00000000", "B11111111", "XXXXXXXXXXXXXXXXXXXXXXXX"].join("/");
+    expect(findSecrets(slack).some((h) => h.kind === "slack-webhook")).toBe(true);
+    expect(redactSecrets(slack).text).toContain("[REDACTED]");
   });
 });
 
@@ -126,5 +143,22 @@ describe("cli", () => {
     console.error = origErr;
     expect(errors.join("\n")).toContain("dry-run");
     expect(errors.join("\n")).toContain("keep");
+  });
+
+  it("writes a JSON summary file with counts and kept paths", () => {
+    const root = fixture();
+    const dir = mkdtempSync(join(tmpdir(), "ctxpack-summary-"));
+    const out = join(dir, "prompt.md");
+    const summaryFile = join(dir, "summary.json");
+    const origErr = console.error;
+    console.error = () => {};
+    const code = run([root, "-o", out, "--summary", summaryFile]);
+    console.error = origErr;
+    expect(code).toBe(0);
+    const parsed = JSON.parse(readFileSync(summaryFile, "utf8"));
+    expect(parsed.files).toBeGreaterThan(0);
+    expect(typeof parsed.tokens).toBe("number");
+    expect(parsed.kept.some((f: { path: string }) => f.path === "src/index.ts")).toBe(true);
+    expect(parsed.kept.every((f: { path: string }) => typeof f.path === "string")).toBe(true);
   });
 });

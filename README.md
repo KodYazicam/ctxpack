@@ -88,6 +88,9 @@ ctxpack . -o prompt.md
 # see what would be kept without writing
 ctxpack . --dry-run --verbose
 
+# pack + a machine-readable stats file for CI or caching
+ctxpack . -o prompt.md --summary stats.json
+
 # only source, small chat model
 ctxpack ./src --max-tokens 12000 -o chat.md
 
@@ -115,6 +118,7 @@ ctxpack [dir] [options]
       --include <glob>     Only include matching paths (repeatable)
       --dry-run            Print keep/drop to stderr; write nothing
       --verbose            List every kept and dropped path
+      --summary <file>     Write a JSON stats summary (files, tokens, redaction)
   -h, --help
   -v, --version            Reads version from package.json
 ```
@@ -170,7 +174,10 @@ On by default. Patterns:
 - OpenAI-like keys (`sk-` 32+, `sk-proj-…`, `sk-svcacct-…`)
 - Anthropic (`sk-ant-…`)
 - Stripe live keys and `whsec_`
-- Slack tokens (`xox…`)
+- Slack tokens (`xox…`) and `hooks.slack.com` webhook URLs
+- Google API keys (`AIza…`)
+- Telegram bot tokens (`123456:AA…`)
+- npm access tokens (`npm_…`)
 - PEM private keys
 - Generic quoted `password=` / `api_key=` assignments
 

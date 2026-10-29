@@ -9,6 +9,7 @@
 
 <p align="center">
   <a href="https://github.com/KodYazicam/ctxpack/actions"><img src="https://img.shields.io/github/actions/workflow/status/KodYazicam/ctxpack/ci.yml?style=flat-square" alt="CI"></a>
+  <a href="https://www.npmjs.com/package/@kodyazicam/ctxpack"><img src="https://img.shields.io/npm/v/@kodyazicam/ctxpack?style=flat-square" alt="npm"></a>
   <img src="https://img.shields.io/badge/node-%3E%3D20-339933?style=flat-square" alt="Node">
   <img src="https://img.shields.io/badge/license-KYAL--1.0-7C3AED?style=flat-square" alt="License">
   <img src="https://img.shields.io/badge/author-KodYazicam-0D0D0D?style=flat-square" alt="Author">
@@ -19,12 +20,21 @@
 `ctxpack` walks a project, ranks the files a model actually needs (README, package manifests, `src/`), and writes a single prompt you can paste into ChatGPT, Claude, Copilot, Cursor, or a local model. It is a real CLI with zero runtime dependencies. There is no API key and no network call.
 
 ```bash
-git clone https://github.com/KodYazicam/ctxpack.git
-cd ctxpack && npm ci && npm run build
-node dist/cli.js . -o prompt.md
+npx @kodyazicam/ctxpack . -o prompt.md
 ```
 
-After `npm ci && npm run build`, the CLI is `node dist/cli.js`. `npm link` in this clone puts `ctxpack` on your PATH. From another project that file-depends on this repo:
+Or install it globally:
+
+```bash
+npm install -g @kodyazicam/ctxpack
+ctxpack . -o prompt.md
+```
+
+From another project, install the library:
+
+```bash
+npm install @kodyazicam/ctxpack
+```
 
 ```ts
 import { pack } from "@kodyazicam/ctxpack";
@@ -67,7 +77,26 @@ Pasting a zip into a chat window dumps `node_modules`, lockfiles, binaries, and 
 
 ## Install
 
-Not on npm. Clone and build:
+Global CLI:
+
+```bash
+npm install -g @kodyazicam/ctxpack
+ctxpack . -o prompt.md
+```
+
+One-off use:
+
+```bash
+npx @kodyazicam/ctxpack . -o prompt.md
+```
+
+Library:
+
+```bash
+npm install @kodyazicam/ctxpack
+```
+
+From source:
 
 ```bash
 git clone https://github.com/KodYazicam/ctxpack.git
@@ -199,7 +228,7 @@ Every format includes attribution: KodYazicam / ctxpack.
 
 ## Library API
 
-After `npm install /path/to/ctxpack` (this clone):
+After `npm install @kodyazicam/ctxpack`:
 
 ```ts
 import { pack, estimateTokens, findSecrets, redactSecrets, walkFiles } from "@kodyazicam/ctxpack";
@@ -267,7 +296,7 @@ ctxpack . --dry-run --verbose 2> plan.txt
 
 **Should I commit `prompt.md`?** No. It can contain source and (if you disabled redaction) secrets. Add it to `.gitignore`.
 
-**Is it on npm?** No. Clone this repo. The package name in `package.json` is `@kodyazicam/ctxpack` so a local `npm link` does not collide with the unrelated public `ctxpack` package.
+**Is it on npm?** Yes: `npx @kodyazicam/ctxpack` or `npm install -g @kodyazicam/ctxpack`. The scoped name avoids colliding with the unrelated public `ctxpack` package.
 
 ## License — KYAL-1.0
 

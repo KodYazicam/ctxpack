@@ -18,7 +18,7 @@
   "homepage": "https://github.com/KodYazicam/ctxpack",
   "repository": {
     "type": "git",
-    "url": "https://github.com/KodYazicam/ctxpack.git"
+    "url": "git+https://github.com/KodYazicam/ctxpack.git"
   },
   "bugs": {
     "url": "https://github.com/KodYazicam/ctxpack/issues"
@@ -26,7 +26,7 @@
   "type": "module",
   "sideEffects": false,
   "bin": {
-    "ctxpack": "./dist/cli.js"
+    "ctxpack": "dist/cli.js"
   },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

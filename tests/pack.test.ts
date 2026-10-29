@@ -1,11 +1,13 @@
-import { mkdtempSync, writeFileSync, mkdirSync, readFileSync } from "node:fs";
+import { mkdtempSync, writeFileSync, mkdirSync, readFileSync, symlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { pathToFileURL } from "node:url";
 import { describe, expect, it } from "vitest";
 import { pack } from "../src/pack.js";
 import { estimateTokens, heuristicTokens } from "../src/tokens.js";
 import { redactSecrets, findSecrets } from "../src/secrets.js";
 import { run } from "../src/cli.js";
+import { invokedDirectly } from "../src/main.js";
 import { packageVersion } from "../src/version.js";
 
 function fixture(): string {
@@ -71,6 +73,23 @@ describe("secrets", () => {
     const slack = ["https://hooks.slack.com/services/T00000000", "B11111111", "XXXXXXXXXXXXXXXXXXXXXXXX"].join("/");
     expect(findSecrets(slack).some((h) => h.kind === "slack-webhook")).toBe(true);
     expect(redactSecrets(slack).text).toContain("[REDACTED]");
+  });
+});
+
+describe("invokedDirectly", () => {
+  it("recognizes an npm bin symlink as the CLI entrypoint", () => {
+    const dir = mkdtempSync(join(tmpdir(), "ctxpack-bin-"));
+    const target = join(dir, "cli.js");
+    const link = join(dir, "ctxpack");
+    writeFileSync(target, "#!/usr/bin/env node\n");
+    symlinkSync(target, link);
+    const original = process.argv[1];
+    process.argv[1] = link;
+    try {
+      expect(invokedDirectly(pathToFileURL(target).href)).toBe(true);
+    } finally {
+      process.argv[1] = original;
+    }
   });
 });
 

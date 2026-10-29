@@ -15,6 +15,11 @@ secret-like strings. Nothing is uploaded. There is no API key.
 
 Usage:
   ctxpack [dir] [options]
+  ctxpack mcp
+
+MCP:
+  ctxpack mcp starts a stdio Model Context Protocol server for AI agents.
+  Tools: pack_context, estimate_tokens, scan_secrets.
 
 Options:
   -o, --out <file>         Write to file instead of stdout
@@ -48,6 +53,35 @@ How gitignore works:
 
 License: KYAL-1.0 — free to use, attribution required.
 https://github.com/KodYazicam/ctxpack
+`.trim();
+}
+
+function mcpHelp(): string {
+  return `
+ctxpack mcp — Model Context Protocol server
+
+Usage:
+  ctxpack mcp
+
+Starts a stdio MCP server. stdout is reserved for the protocol; diagnostics
+go to stderr. The server exposes:
+
+  pack_context     Pack a repository into a token-budgeted, redacted context.
+  estimate_tokens  Estimate the token cost of a text string.
+  scan_secrets     Find secret-like values in a repository or text.
+
+Example client configuration:
+
+  {
+    "mcpServers": {
+      "ctxpack": {
+        "command": "npx",
+        "args": ["-y", "@kodyazicam/ctxpack", "mcp"]
+      }
+    }
+  }
+
+Runs locally. No network access, no API key, and no telemetry.
 `.trim();
 }
 
@@ -140,6 +174,15 @@ function parseArgs(argv: string[]): Args {
 }
 
 export function run(argv: string[]): number {
+  if (argv[0] === "mcp") {
+    const rest = argv.slice(1);
+    if (rest.includes("-h") || rest.includes("--help")) {
+      console.log(mcpHelp());
+      return 0;
+    }
+    console.error("ctxpack mcp is a stdio server; run it directly as `ctxpack mcp`.");
+    return 1;
+  }
   let args: Args;
   try {
     args = parseArgs(argv);
@@ -233,6 +276,32 @@ export function run(argv: string[]): number {
   return 0;
 }
 
+function startMcp(): void {
+  import("./mcp.js")
+    .then(({ runMcpServer }) => {
+      runMcpServer();
+    })
+    .catch((error: unknown) => {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error(`ctxpack mcp: ${message}`);
+      console.error(
+        "Install the optional MCP dependencies with: npm install @modelcontextprotocol/server zod",
+      );
+      process.exitCode = 1;
+    });
+}
+
 if (invokedDirectly(import.meta.url)) {
-  process.exitCode = run(process.argv.slice(2));
+  const argv = process.argv.slice(2);
+  if (argv[0] === "mcp" && !argv.includes("-h") && !argv.includes("--help")) {
+    const rest = argv.slice(1);
+    if (rest.length > 0) {
+      console.error(`ctxpack mcp: unexpected argument(s): ${rest.join(" ")}`);
+      process.exitCode = 1;
+    } else {
+      startMcp();
+    }
+  } else {
+    process.exitCode = run(argv);
+  }
 }

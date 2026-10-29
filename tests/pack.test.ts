@@ -146,9 +146,12 @@ describe("cli", () => {
     };
     expect(run(["--help"])).toBe(0);
     expect(run(["--version"])).toBe(0);
+    expect(run(["mcp", "--help"])).toBe(0);
     console.log = orig;
     expect(logs.join("\n")).toContain("ctxpack");
     expect(logs.join("\n")).toContain(packageVersion());
+    expect(logs.join("\n")).toContain("Model Context Protocol");
+    expect(logs.join("\n")).toContain("pack_context");
   });
 
   it("dry-run writes nothing to stdout", () => {

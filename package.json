@@ -1,7 +1,7 @@
 {
   "name": "@kodyazicam/ctxpack",
-  "version": "1.0.1",
-  "description": "Pack a codebase into LLM-ready context. Respects .gitignore, budgets tokens, redacts secrets.",
+  "version": "1.1.0",
+  "description": "Pack a codebase into LLM-ready context. Respects .gitignore, budgets tokens, redacts secrets, and exposes an MCP server for AI agents.",
   "keywords": [
     "llm",
     "ai",
@@ -11,7 +11,11 @@
     "tokenizer",
     "chatgpt",
     "claude",
-    "copilot"
+    "copilot",
+    "mcp",
+    "model-context-protocol",
+    "ai-agent",
+    "llm-tools"
   ],
   "license": "SEE LICENSE IN LICENSE",
   "author": "Batuhan (KodYazicam) <https://github.com/KodYazicam>",
@@ -34,6 +38,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./mcp": {
+      "types": "./dist/mcp.d.ts",
+      "import": "./dist/mcp.js"
     }
   },
   "files": [
@@ -59,7 +67,9 @@
     "typecheck": "tsc -p tsconfig.build.json --noEmit"
   },
   "optionalDependencies": {
-    "tiktoken": "^1.0.21"
+    "@modelcontextprotocol/server": "^2.4.0",
+    "tiktoken": "^1.0.21",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",

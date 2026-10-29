@@ -17,7 +17,7 @@
 
 ---
 
-`ctxpack` walks a project, ranks the files a model actually needs (README, package manifests, `src/`), and writes a single prompt you can paste into ChatGPT, Claude, Copilot, Cursor, or a local model. It is a real CLI with zero runtime dependencies. There is no API key and no network call.
+`ctxpack` walks a project, ranks the files a model actually needs (README, package manifests, `src/`), and writes a single prompt you can paste into ChatGPT, Claude, Copilot, Cursor, or a local model. The core CLI has **no required runtime dependencies**; the optional MCP server uses the official Model Context Protocol SDK. There is no API key and no network call.
 
 ```bash
 npx @kodyazicam/ctxpack . -o prompt.md
@@ -46,6 +46,7 @@ import { pack } from "@kodyazicam/ctxpack";
 - [Requirements](#requirements)
 - [Install](#install)
 - [Quick start](#quick-start)
+- [MCP server for AI agents](#mcp-server-for-ai-agents)
 - [CLI reference](#cli-reference)
 - [What is included / skipped](#what-is-included--skipped)
 - [Gitignore, nested rules, and symlinks](#gitignore-nested-rules-and-symlinks)
@@ -132,11 +133,50 @@ ctxpack . --format json -o context.json
 
 Paste `prompt.md` into the model. The file starts with a repository tree of **kept** files, then one fenced block per file.
 
+## MCP server for AI agents
+
+`ctxpack` can run as a stdio [Model Context Protocol](https://modelcontextprotocol.io) server, so Claude Desktop, Claude Code, Cursor, and other MCP clients can call it as a tool:
+
+```bash
+ctxpack mcp
+```
+
+The server exposes three local-only tools:
+
+| Tool | What it does |
+| --- | --- |
+| `pack_context` | Packs a repository into a token-budgeted, secret-redacted context document. Accepts `root`, `maxTokens`, `format`, `redact`, `tree`, `include`, `ignore`, and `maxFileBytes`. |
+| `estimate_tokens` | Estimates the token cost of a text string. |
+| `scan_secrets` | Scans a directory or a text string for secret-like values and returns redacted snippets. |
+
+Example client configuration:
+
+```json
+{
+  "mcpServers": {
+    "ctxpack": {
+      "command": "npx",
+      "args": ["-y", "@kodyazicam/ctxpack", "mcp"]
+    }
+  }
+}
+```
+
+For Claude Code:
+
+```bash
+claude mcp add ctxpack -- npx -y @kodyazicam/ctxpack mcp
+```
+
+The MCP command is optional: normal CLI and library use does not load the SDK. The MCP dependencies are installed by default; if you install with `--omit=optional`, install them explicitly with `npm install @modelcontextprotocol/server zod`.
+
 ## CLI reference
 
 ```text
 ctxpack [dir] [options]
+ctxpack mcp
 
+  mcp                      Start the stdio MCP server (see above)
   [dir]                    Root to walk (default: .)
   -o, --out <file>         Write to file (default: stdout)
   -m, --max-tokens <n>     Token budget of the rendered output (default: 80000)
@@ -188,7 +228,7 @@ Symlinks that loop, or that `realpath` cannot resolve, are skipped so a maliciou
 
 ## Token budget
 
-Tokens are an **estimate** (cl100k-ish heuristic). If you `npm i tiktoken` next to ctxpack, `estimateTokens` uses the real cl100k_base encoder; the package stays optional so the CLI has zero required deps. The budget is applied to file contents **plus** a small per-file fence overhead **plus** the header, so markdown wrappers do not secretly blow the window.
+Tokens are an **estimate** (cl100k-ish heuristic). If you `npm i tiktoken` next to ctxpack, `estimateTokens` uses the real cl100k_base encoder; the package stays optional so the core CLI has no required deps. The MCP SDK and `zod` are also optional and only loaded by `ctxpack mcp`. The budget is applied to file contents **plus** a small per-file fence overhead **plus** the header, so markdown wrappers do not secretly blow the window.
 
 Priority (high → low): README, package/pyproject/cargo/go manifests, `src/` / `lib/`, `index.*`, source extensions, then tests/docs. Large files are penalized. When the budget is full, remaining files go to `dropped`. The tree lists **kept** files only; `--verbose` lists drops.
 
@@ -258,6 +298,7 @@ result.redactedCount;
 | `walkFiles(options)` | Gitignore-aware walker |
 | `runCli(argv)` | Same as the binary |
 | `packageVersion()` | Version from package.json |
+| `createMcpServer()` | Build the MCP server without starting a transport (`@kodyazicam/ctxpack/mcp`) |
 
 ## Examples
 

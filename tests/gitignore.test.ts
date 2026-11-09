@@ -2,7 +2,7 @@ import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { isIgnored, loadIgnoreRules } from "../src/gitignore.js";
+import { isIgnored, loadIgnoreRules, loadNestedIgnore, toRelative } from "../src/gitignore.js";
 
 function rulesFrom(gitignore: string): ReturnType<typeof loadIgnoreRules> {
   const dir = mkdtempSync(join(tmpdir(), "ctxpack-gitignore-"));
@@ -30,5 +30,19 @@ describe("gitignore glob compilation", () => {
     const rules = rulesFrom("/root-only.txt\n");
     expect(isIgnored("root-only.txt", rules, false)).toBe(true);
     expect(isIgnored("pkg/root-only.txt", rules, false)).toBe(false);
+  });
+
+  it("loads nested rules and computes relative paths", () => {
+    const dir = mkdtempSync(join(tmpdir(), "ctxpack-gitignore-"));
+    writeFileSync(join(dir, ".gitignore"), "generated.ts\n");
+    const nested = loadNestedIgnore(dir, ".");
+    expect(isIgnored("generated.ts", nested, false)).toBe(true);
+    expect(toRelative(dir, join(dir, "src", "index.ts"))).toBe("src/index.ts");
+    expect(toRelative(dir, dir)).toBe(".");
+  });
+
+  it("ignores oversized patterns", () => {
+    const rules = rulesFrom(`${"a".repeat(1025)}\n`);
+    expect(isIgnored("anything.txt", rules, false)).toBe(false);
   });
 });

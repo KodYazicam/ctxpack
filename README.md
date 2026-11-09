@@ -11,7 +11,7 @@
   <a href="https://github.com/KodYazicam/ctxpack/actions"><img src="https://img.shields.io/github/actions/workflow/status/KodYazicam/ctxpack/ci.yml?style=flat-square" alt="CI"></a>
   <a href="https://www.npmjs.com/package/@kodyazicam/ctxpack"><img src="https://img.shields.io/npm/v/@kodyazicam/ctxpack?style=flat-square" alt="npm"></a>
   <img src="https://img.shields.io/badge/node-%3E%3D20-339933?style=flat-square" alt="Node">
-  <img src="https://img.shields.io/badge/license-KYAL--1.0-7C3AED?style=flat-square" alt="License">
+  <img src="https://img.shields.io/badge/license-Apache--2.0-2ea44f?style=flat-square" alt="License">
   <img src="https://img.shields.io/badge/author-KodYazicam-0D0D0D?style=flat-square" alt="Author">
 </p>
 
@@ -58,7 +58,7 @@ import { pack } from "@kodyazicam/ctxpack";
 - [Examples](#examples)
 - [Troubleshooting](#troubleshooting)
 - [FAQ](#faq)
-- [License](#license--kyal-10)
+- [License](#license)
 
 ## Why it exists
 
@@ -339,16 +339,10 @@ ctxpack . --dry-run --verbose 2> plan.txt
 
 **Is it on npm?** Yes: `npx @kodyazicam/ctxpack` or `npm install -g @kodyazicam/ctxpack`. The scoped name avoids colliding with the unrelated public `ctxpack` package.
 
-## License — KYAL-1.0
+## License
 
-Free to use, copy, modify, and ship. **Attribution is mandatory.** This is not an OSI-approved license; it is MIT-shaped plus a credit requirement.
+Apache-2.0. See [LICENSE](./LICENSE).
 
-```
-Author : Batuhan (KodYazicam)
-Project: ctxpack
-Source : https://github.com/KodYazicam/ctxpack
-```
-
-Keep this credit in LICENSE, README, and any public product that embeds ctxpack. See [LICENSE](./LICENSE).
+Commercial use, modification, and distribution are permitted under the Apache License 2.0. Keep the license text with distributed copies.
 
 <p align="center"><sub>Built by <a href="https://github.com/KodYazicam">KodYazicam</a></sub></p>

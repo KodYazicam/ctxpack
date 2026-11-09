@@ -16,6 +16,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Hardened `.gitignore` glob compilation: regex metacharacters are escaped,
   only `*`, `**`, and `?` are treated as operators, and oversized patterns are
   ignored instead of compiled.
+- Upgraded `vitest` and `@vitest/coverage-v8` to 5.1.0, clearing the dev-only
+  dependency advisories. Added coverage tests for tree rendering, include
+  globs, file token totals, and nested ignore rules.
 
 ## [1.1.0] - 2026-10-29
 

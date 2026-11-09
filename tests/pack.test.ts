@@ -4,10 +4,11 @@ import { dirname, join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { describe, expect, it } from "vitest";
 import { pack } from "../src/pack.js";
-import { estimateTokens, heuristicTokens } from "../src/tokens.js";
+import { estimateTokens, estimateTokensOfFiles, heuristicTokens } from "../src/tokens.js";
 import { redactSecrets, findSecrets } from "../src/secrets.js";
 import { run } from "../src/cli.js";
 import { invokedDirectly } from "../src/main.js";
+import { buildTree, walkFiles } from "../src/walk.js";
 import { packageVersion } from "../src/version.js";
 
 function fixture(): string {
@@ -41,6 +42,7 @@ describe("estimateTokens", () => {
     expect(n).toBeGreaterThan(0);
     expect(Number.isInteger(n)).toBe(true);
     expect(heuristicTokens("abc")).toBeGreaterThan(0);
+    expect(estimateTokensOfFiles([{ content: "hello world" }, { content: "" }])).toBeGreaterThan(0);
   });
 });
 
@@ -208,5 +210,27 @@ describe("cli", () => {
     expect(typeof parsed.tokens).toBe("number");
     expect(parsed.kept.some((f: { path: string }) => f.path === "src/index.ts")).toBe(true);
     expect(parsed.kept.every((f: { path: string }) => typeof f.path === "string")).toBe(true);
+  });
+});
+
+describe("buildTree", () => {
+  it("renders nested paths as an indented tree", () => {
+    const tree = buildTree(["README.md", "src/index.ts", "src/lib/a.ts"]);
+    expect(tree).toContain("README.md");
+    expect(tree).toContain("src");
+    expect(tree).toContain("index.ts");
+    expect(tree).toContain("lib");
+    expect(tree).toContain("a.ts");
+  });
+});
+
+describe("walkFiles include globs", () => {
+  it("filters with single-star and directory globs", () => {
+    const root = fixture();
+    const single = walkFiles({ root, include: ["src/*.ts"] }).map((file) => file.path);
+    expect(single).toContain("src/index.ts");
+    expect(single).not.toContain("README.md");
+    const directory = walkFiles({ root, include: ["pkg/**"] }).map((file) => file.path);
+    expect(directory).toContain("pkg/keep.ts");
   });
 });

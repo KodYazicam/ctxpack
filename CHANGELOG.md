@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Documented a monorepo include/exclude example and covered it with a test.
 
+### Security
+
+- Hardened `.gitignore` glob compilation: regex metacharacters are escaped,
+  only `*`, `**`, and `?` are treated as operators, and oversized patterns are
+  ignored instead of compiled.
+
 ## [1.1.0] - 2026-10-29
 
 ### Added

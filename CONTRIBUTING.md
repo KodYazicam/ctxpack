@@ -1,6 +1,6 @@
 # Contributing to ctxpack
 
-Thanks for helping. Attribution stays with [KodYazicam](https://github.com/KodYazicam) under KYAL-1.0.
+Thanks for helping. Licensed under Apache-2.0.
 
 ## Setup
 

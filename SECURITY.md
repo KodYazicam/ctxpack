@@ -2,7 +2,7 @@
 
 ## Supported versions
 
-Supported line: `main` on GitHub. This tool is not published to npm.
+Supported line: the latest `1.x` release on npm (`@kodyazicam/ctxpack`) and `main` on GitHub. Older versions receive fixes only when the issue is exploitable and the upgrade is trivial.
 
 ## What ctxpack does with your files
 

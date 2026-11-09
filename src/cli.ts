@@ -51,7 +51,7 @@ How gitignore works:
   .gitignore plus every nested .gitignore. Symlinks that leave the root or
   loop are skipped. .env.example / .env.sample / .env.template are kept.
 
-License: KYAL-1.0 — free to use, attribution required.
+License: Apache-2.0.
 https://github.com/KodYazicam/ctxpack
 `.trim();
 }

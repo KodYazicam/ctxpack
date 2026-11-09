@@ -303,8 +303,15 @@ result.redactedCount;
 ## Examples
 
 ```bash
-# monorepo app only
-ctxpack . --include apps/web/** --include packages/ui/** -o web.md
+# monorepo: keep two apps + shared packages, drop tests and generated code
+ctxpack . \
+  --include "apps/web/**" \
+  --include "apps/api/**" \
+  --include "packages/ui/**" \
+  --include "packages/config/**" \
+  --ignore "**/*.test.ts" \
+  --ignore "**/generated/**" \
+  -o monorepo.md
 
 # ignore generated clients
 ctxpack . --ignore generated/** --ignore "*.gen.ts" -o prompt.md

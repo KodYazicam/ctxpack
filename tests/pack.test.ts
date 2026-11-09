@@ -1,6 +1,6 @@
 import { mkdtempSync, writeFileSync, mkdirSync, readFileSync, symlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { describe, expect, it } from "vitest";
 import { pack } from "../src/pack.js";
@@ -126,6 +126,32 @@ describe("pack", () => {
     expect(tiny.files.length).toBeLessThanOrEqual(big.files.length);
     expect(tiny.dropped.length).toBeGreaterThanOrEqual(0);
     expect(tiny.tree).toBe("");
+  });
+
+  it("combines include and ignore globs for a monorepo", () => {
+    const dir = mkdtempSync(join(tmpdir(), "ctxpack-monorepo-"));
+    const write = (rel: string, body: string) => {
+      const abs = join(dir, rel);
+      mkdirSync(dirname(abs), { recursive: true });
+      writeFileSync(abs, body);
+    };
+    write("apps/web/src/index.ts", "export const web = 1;\n");
+    write("apps/api/src/index.ts", "export const api = 1;\n");
+    write("packages/ui/src/button.ts", "export const button = 1;\n");
+    write("packages/ui/src/button.test.ts", "export const test = 1;\n");
+    write("packages/generated/types.ts", "export type Generated = 1;\n");
+    const result = pack({
+      root: dir,
+      include: ["apps/web/**", "packages/ui/**"],
+      extraIgnore: ["**/*.test.ts", "**/generated/**"],
+      tree: false,
+      maxTokens: 20_000,
+    });
+    expect(result.output).toContain("apps/web/src/index.ts");
+    expect(result.output).toContain("packages/ui/src/button.ts");
+    expect(result.output).not.toContain("apps/api");
+    expect(result.output).not.toContain("button.test.ts");
+    expect(result.output).not.toContain("packages/generated");
   });
 
   it("emits xml and json", () => {

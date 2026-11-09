@@ -79,35 +79,26 @@ function compileRule(raw: string, base: string): IgnoreRule {
   return { negated, directoryOnly, pattern: raw, regex };
 }
 
+const GLOBSTAR_SLASH = "\u0000gss\u0000";
+const GLOBSTAR = "\u0000gs\u0000";
+const STAR = "\u0000s\u0000";
+const QUESTION = "\u0000q\u0000";
+
 function globToRegExp(pattern: string, anchored: boolean): RegExp {
-  let source = "";
-  for (let i = 0; i < pattern.length; i += 1) {
-    const char = pattern[i];
-    if (char === "*" && pattern[i + 1] === "*") {
-      const next = pattern[i + 2];
-      if (next === "/") {
-        source += "(?:.*/)?";
-        i += 2;
-      } else {
-        source += ".*";
-        i += 1;
-      }
-      continue;
-    }
-    if (char === "*") {
-      source += "[^/]*";
-      continue;
-    }
-    if (char === "?") {
-      source += "[^/]";
-      continue;
-    }
-    if ("\\^$+()[]{}|.".includes(char)) {
-      source += `\\${char}`;
-      continue;
-    }
-    source += char;
+  if (pattern.length > 1024 || pattern.includes("\u0000")) {
+    return /(?!)/;
   }
+  const tokenized = pattern
+    .replaceAll("**/", GLOBSTAR_SLASH)
+    .replaceAll("**", GLOBSTAR)
+    .replaceAll("*", STAR)
+    .replaceAll("?", QUESTION);
+  const escaped = tokenized.replace(/[\\^$.*+?()[\]{}|/]/g, "\\$&");
+  const source = escaped
+    .replaceAll(GLOBSTAR_SLASH, "(?:.*/)?")
+    .replaceAll(GLOBSTAR, ".*")
+    .replaceAll(STAR, "[^/]*")
+    .replaceAll(QUESTION, "[^/]");
   const prefix = anchored ? "^" : "(?:^|.*/)";
   return new RegExp(`${prefix}${source}(?:/.*)?$`);
 }
